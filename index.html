@@ -108,6 +108,14 @@
       margin-bottom: .4rem;
       text-align: left;
     }
+    .feedback {
+      min-height: 1.5rem;
+      margin-top: .75rem;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+    .feedback.correct { color: #4ade80; }
+    .feedback.wrong { color: #f87171; }
     .progress-track {
       background: var(--bg);
       border: 1px solid #334155;
@@ -130,8 +138,9 @@
     <h1><img src="assets/ridley_portrait.png" alt="Riddle Monster" width="48" height="48" style="border-radius:50%;vertical-align:middle;margin-right:.4rem;" /> Riddle Quest</h1>
     <p>Can you solve today's riddle?</p>
     <div class="riddle" id="riddle">Loading riddles…</div>
+    <div class="feedback" id="feedback"></div>
     <div class="progress-wrap" id="progressWrap">
-      <div class="progress-label" id="progressLabel">0 / 10 answered</div>
+      <div class="progress-label" id="progressLabel">0 / 10 solved</div>
       <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     </div>
     <div class="input-row">
@@ -147,13 +156,15 @@
     const btn = document.getElementById("nextBtn");
     const input = document.getElementById("answerInput");
     const countEl = document.getElementById("count");
+    const feedbackEl = document.getElementById("feedback");
     let riddles = [];
     let i = 0;
     let revealed = false;
 
     // ---------- Progress (GUI only — no correctness check yet) ----------
     const GOAL = 10;      // riddles answered to complete the level
-    let solved = 0;       // how many the user has answered
+    let solved = 0;       // how many the user has solved correctly
+    let wasCorrect = false; // whether the current riddle was answered correctly
     let complete = false; // level finished state
     const progressWrap = document.getElementById("progressWrap");
     const progressLabel = document.getElementById("progressLabel");
@@ -162,13 +173,15 @@
     function updateProgress() {
       const pct = Math.round((solved / GOAL) * 100);
       progressFill.style.width = pct + "%";
-      progressLabel.textContent = solved + " / " + GOAL + " answered";
+      progressLabel.textContent = solved + " / " + GOAL + " solved";
     }
 
     function showLevelComplete() {
       complete = true;
       progressWrap.classList.add("complete");
-      el.textContent = "🎉 Level complete! You answered " + GOAL + " riddles. Nice work.";
+      el.textContent = "🎉 Level complete! You solved " + GOAL + " riddles. Nice work.";
+      feedbackEl.textContent = "";
+      feedbackEl.className = "feedback";
       btn.textContent = "Play Again";
       btn.disabled = false;
       input.disabled = true;
@@ -243,32 +256,75 @@
       el.textContent = riddles[i].q;
       el.classList.remove("error");
       el.style.whiteSpace = "";
-      btn.textContent = "Reveal Answer";
+      btn.textContent = "Check Answer";
       btn.disabled = false;
       input.disabled = false;
       updateProgress();
       input.value = "";
       input.placeholder = "Type your answer…";
       revealed = false;
+      wasCorrect = false;
+      feedbackEl.textContent = "";
+      feedbackEl.className = "feedback";
     }
 
     function showFatal(msg) {
       el.textContent = msg;
       el.classList.add("error");
       el.style.whiteSpace = "pre-line";
+      feedbackEl.textContent = "";
+      feedbackEl.className = "feedback";
       btn.disabled = true;
       input.disabled = true;
     }
 
+    function revealAnswer() {
+      wasCorrect = false;
+      el.textContent = "Answer: " + riddles[i].a;
+      feedbackEl.textContent = "";
+      feedbackEl.className = "feedback";
+      input.disabled = true;
+      btn.textContent = "Next Riddle";
+      btn.disabled = false;
+    }
+
+    function checkAnswer() {
+      const guess = input.value.trim().toLowerCase();
+      const correct = riddles[i].a.trim().toLowerCase();
+      if (guess === correct) {
+        wasCorrect = true;
+        el.textContent = "✅ Correct!  Answer: " + riddles[i].a;
+        feedbackEl.textContent = "Nice work!";
+        feedbackEl.className = "feedback correct";
+        input.disabled = true;
+        btn.textContent = "Next Riddle";
+        btn.disabled = false;
+      } else {
+        feedbackEl.textContent = "❌ Not quite — try again, or leave it blank and click Reveal.";
+        feedbackEl.className = "feedback wrong";
+        btn.textContent = "Reveal";
+      }
+    }
+
+    // ---------- Button state machine ----------
+    // CHECK → (correct → NEXT | wrong → REVEAL) → NEXT → CHECK …
     btn.addEventListener("click", () => {
       if (!riddles.length) return;
       if (complete) { resetGame(); return; }
-      if (!revealed) {
-        el.textContent = "Answer: " + riddles[i].a;
-        btn.textContent = "Next Riddle";
-        revealed = true;
-      } else {
-        solved = Math.min(solved + 1, GOAL);
+
+      const label = btn.textContent;
+
+      if (label === "Check Answer" || label === "Reveal") {
+        const guess = input.value.trim();
+        if (guess) {
+          checkAnswer();
+        } else {
+          revealAnswer();
+        }
+      } else if (label === "Next Riddle") {
+        if (wasCorrect) {
+          solved = Math.min(solved + 1, GOAL);
+        }
         if (solved >= GOAL) {
           updateProgress();
           showLevelComplete();
@@ -276,6 +332,14 @@
           i = (i + 1) % riddles.length;
           render();
         }
+      }
+    });
+
+    // Enter key in the input triggers the same logic as clicking the button
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !input.disabled) {
+        e.preventDefault();
+        btn.click();
       }
     });
 
