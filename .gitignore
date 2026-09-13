@@ -1,0 +1,7 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*~
+
+# Not part of this project (stray file with a leading space in its name)
+ RIDDLE_QUEST.md
