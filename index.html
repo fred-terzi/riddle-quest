@@ -51,6 +51,35 @@
       justify-content: center;
     }
     .riddle.error { font-style: normal; color: var(--text); text-align: left; }
+    .input-row {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: 1.25rem;
+    }
+    .input-row label {
+      font-size: .85rem;
+      color: var(--muted);
+      white-space: nowrap;
+      align-self: center;
+    }
+    input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      background: var(--bg);
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: .7rem 1rem;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input[type="text"]::placeholder { color: var(--muted); }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(250,204,21,.15);
+    }
+    input[type="text"]:disabled { opacity: .5; cursor: not-allowed; }
     button {
       background: var(--accent);
       color: var(--bg);
@@ -79,6 +108,10 @@
     <h1>🧩 Riddle Quest</h1>
     <p>Can you solve today's riddle?</p>
     <div class="riddle" id="riddle">Loading riddles…</div>
+    <div class="input-row">
+      <label for="answerInput">Your answer:</label>
+      <input type="text" id="answerInput" placeholder="Type your answer…" autocomplete="off" disabled />
+    </div>
     <button id="nextBtn" disabled>Reveal Answer</button>
     <p class="count" id="count"></p>
   </main>
@@ -86,6 +119,7 @@
   <script>
     const el = document.getElementById("riddle");
     const btn = document.getElementById("nextBtn");
+    const input = document.getElementById("answerInput");
     const countEl = document.getElementById("count");
     let riddles = [];
     let i = 0;
@@ -144,6 +178,9 @@
       el.style.whiteSpace = "";
       btn.textContent = "Reveal Answer";
       btn.disabled = false;
+      input.disabled = false;
+      input.value = "";
+      input.placeholder = "Type your answer…";
       revealed = false;
     }
 
@@ -152,6 +189,7 @@
       el.classList.add("error");
       el.style.whiteSpace = "pre-line";
       btn.disabled = true;
+      input.disabled = true;
     }
 
     btn.addEventListener("click", () => {
