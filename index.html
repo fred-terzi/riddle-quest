@@ -101,6 +101,28 @@
       color: var(--muted);
       margin: 1rem 0 0;
     }
+    .progress-wrap { margin-bottom: 1.5rem; }
+    .progress-label {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-bottom: .4rem;
+      text-align: left;
+    }
+    .progress-track {
+      background: var(--bg);
+      border: 1px solid #334155;
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #fde047);
+      border-radius: 999px;
+      transition: width .3s ease;
+    }
+    .progress-wrap.complete .progress-fill { background: linear-gradient(90deg, #22c55e, #4ade80); }
   </style>
 </head>
 <body>
@@ -108,6 +130,10 @@
     <h1>🧩 Riddle Quest</h1>
     <p>Can you solve today's riddle?</p>
     <div class="riddle" id="riddle">Loading riddles…</div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label" id="progressLabel">0 / 10 answered</div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
     <div class="input-row">
       <label for="answerInput">Your answer:</label>
       <input type="text" id="answerInput" placeholder="Type your answer…" autocomplete="off" disabled />
@@ -124,6 +150,38 @@
     let riddles = [];
     let i = 0;
     let revealed = false;
+
+    // ---------- Progress (GUI only — no correctness check yet) ----------
+    const GOAL = 10;      // riddles answered to complete the level
+    let solved = 0;       // how many the user has answered
+    let complete = false; // level finished state
+    const progressWrap = document.getElementById("progressWrap");
+    const progressLabel = document.getElementById("progressLabel");
+    const progressFill = document.getElementById("progressFill");
+
+    function updateProgress() {
+      const pct = Math.round((solved / GOAL) * 100);
+      progressFill.style.width = pct + "%";
+      progressLabel.textContent = solved + " / " + GOAL + " answered";
+    }
+
+    function showLevelComplete() {
+      complete = true;
+      progressWrap.classList.add("complete");
+      el.textContent = "🎉 Level complete! You answered " + GOAL + " riddles. Nice work.";
+      btn.textContent = "Play Again";
+      btn.disabled = false;
+      input.disabled = true;
+    }
+
+    function resetGame() {
+      complete = false;
+      solved = 0;
+      i = 0;
+      progressWrap.classList.remove("complete");
+      updateProgress();
+      render();
+    }
 
     // ---------- CSV parser (RFC 4180: quoted fields, commas inside quotes) ----------
     function parseCSV(text) {
@@ -179,6 +237,7 @@
       btn.textContent = "Reveal Answer";
       btn.disabled = false;
       input.disabled = false;
+      updateProgress();
       input.value = "";
       input.placeholder = "Type your answer…";
       revealed = false;
@@ -194,13 +253,20 @@
 
     btn.addEventListener("click", () => {
       if (!riddles.length) return;
+      if (complete) { resetGame(); return; }
       if (!revealed) {
         el.textContent = "Answer: " + riddles[i].a;
         btn.textContent = "Next Riddle";
         revealed = true;
       } else {
-        i = (i + 1) % riddles.length;
-        render();
+        solved = Math.min(solved + 1, GOAL);
+        if (solved >= GOAL) {
+          updateProgress();
+          showLevelComplete();
+        } else {
+          i = (i + 1) % riddles.length;
+          render();
+        }
       }
     });
 
