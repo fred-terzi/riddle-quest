@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Riddle Quest</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #facc15;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.4);
+    }
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: .5rem;
+      color: var(--accent);
+    }
+    p { color: var(--muted); margin-bottom: 1.5rem; line-height: 1.6; }
+    .riddle {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      font-style: italic;
+      line-height: 1.6;
+    }
+    button {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      padding: .75rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(250,204,21,.3);
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>🧩 Riddle Quest</h1>
+    <p>Can you solve today's riddle?</p>
+    <div class="riddle" id="riddle">
+      I speak without a mouth and hear without ears.
+      I have no body, but I come alive with the wind.
+      What am I?
+    </div>
+    <button id="nextBtn">Reveal Answer</button>
+  </main>
+
+  <script>
+    const riddles = [
+      { q: "I speak without a mouth and hear without ears. I have no body, but I come alive with the wind. What am I?", a: "An echo" },
+      { q: "The more you take, the more you leave behind. What am I?", a: "Footsteps" },
+      { q: "I'm tall when I'm young and short when I'm old. What am I?", a: "A candle" },
+      { q: "What has keys but can't open locks?", a: "A piano" }
+    ];
+    let i = 0;
+    const el = document.getElementById("riddle");
+    const btn = document.getElementById("nextBtn");
+    btn.addEventListener("click", () => {
+      if (btn.textContent === "Reveal Answer") {
+        el.textContent = "Answer: " + riddles[i].a;
+        btn.textContent = "Next Riddle";
+      } else {
+        i = (i + 1) % riddles.length;
+        el.textContent = riddles[i].q;
+        btn.textContent = "Reveal Answer";
+      }
+    });
+  </script>
+</body>
+</html>
