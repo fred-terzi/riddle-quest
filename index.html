@@ -178,9 +178,18 @@
       complete = false;
       solved = 0;
       i = 0;
+      shuffleDeck(); // fresh random order for the new round
       progressWrap.classList.remove("complete");
       updateProgress();
       render();
+    }
+
+    // Fisher-Yates shuffle — randomizes the order of the riddle deck in place
+    function shuffleDeck() {
+      for (let n = riddles.length - 1; n > 0; n--) {
+        const m = Math.floor(Math.random() * (n + 1));
+        [riddles[n], riddles[m]] = [riddles[m], riddles[n]];
+      }
     }
 
     // ---------- CSV parser (RFC 4180: quoted fields, commas inside quotes) ----------
@@ -274,6 +283,7 @@
       .then(list => {
         if (!list.length) { showFatal("The riddles file loaded but contained no valid riddles."); return; }
         riddles = list;
+        shuffleDeck(); // start each level at a random riddle
         countEl.textContent = list.length + " riddles loaded from data/riddles.csv";
         render();
       })
