@@ -45,7 +45,12 @@
       margin-bottom: 1.5rem;
       font-style: italic;
       line-height: 1.6;
+      min-height: 3.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+    .riddle.error { font-style: normal; color: var(--text); text-align: left; }
     button {
       background: var(--accent);
       color: var(--bg);
@@ -57,9 +62,15 @@
       cursor: pointer;
       transition: transform .15s, box-shadow .15s;
     }
-    button:hover {
+    button:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(250,204,21,.3);
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .count {
+      font-size: .8rem;
+      color: var(--muted);
+      margin: 1rem 0 0;
     }
   </style>
 </head>
@@ -67,34 +78,107 @@
   <main class="card">
     <h1>🧩 Riddle Quest</h1>
     <p>Can you solve today's riddle?</p>
-    <div class="riddle" id="riddle">
-      I speak without a mouth and hear without ears.
-      I have no body, but I come alive with the wind.
-      What am I?
-    </div>
-    <button id="nextBtn">Reveal Answer</button>
+    <div class="riddle" id="riddle">Loading riddles…</div>
+    <button id="nextBtn" disabled>Reveal Answer</button>
+    <p class="count" id="count"></p>
   </main>
 
   <script>
-    const riddles = [
-      { q: "I speak without a mouth and hear without ears. I have no body, but I come alive with the wind. What am I?", a: "An echo" },
-      { q: "The more you take, the more you leave behind. What am I?", a: "Footsteps" },
-      { q: "I'm tall when I'm young and short when I'm old. What am I?", a: "A candle" },
-      { q: "What has keys but can't open locks?", a: "A piano" }
-    ];
-    let i = 0;
     const el = document.getElementById("riddle");
     const btn = document.getElementById("nextBtn");
+    const countEl = document.getElementById("count");
+    let riddles = [];
+    let i = 0;
+    let revealed = false;
+
+    // ---------- CSV parser (RFC 4180: quoted fields, commas inside quotes) ----------
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], field = "", inQuotes = false;
+      for (let idx = 0; idx < text.length; idx++) {
+        const c = text[idx];
+        if (inQuotes) {
+          if (c === '"') {
+            if (text[idx + 1] === '"') { field += '"'; idx++; }
+            else inQuotes = false;
+          } else field += c;
+        } else if (c === '"') {
+          inQuotes = true;
+        } else if (c === ',') {
+          row.push(field); field = "";
+        } else if (c === '\n' || c === '\r') {
+          if (c === '\r' && text[idx + 1] === '\n') idx++;
+          row.push(field); field = "";
+          rows.push(row); row = [];
+        } else {
+          field += c;
+        }
+      }
+      if (field !== "" || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    // CSV text -> array of { q, a }, matched by header name with index fallback
+    function toRiddles(text) {
+      const rows = parseCSV(text);
+      if (!rows.length) return [];
+      const header = rows[0].map(h => h.trim().toLowerCase());
+      const qi = header.indexOf("questions") >= 0 ? header.indexOf("questions") : 0;
+      const ai = header.indexOf("answers") >= 0 ? header.indexOf("answers") : 1;
+      return rows.slice(1)
+        .map(r => ({ q: (r[qi] || "").trim(), a: (r[ai] || "").trim() }))
+        .filter(r => r.q && r.a);
+    }
+
+    // ---------- Load ----------
+    async function loadRiddles() {
+      if (location.protocol === "file:") throw new Error("FILE_PROTOCOL");
+      const res = await fetch("data/riddles.csv", { cache: "no-cache" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return toRiddles(await res.text());
+    }
+
+    function render() {
+      el.textContent = riddles[i].q;
+      el.classList.remove("error");
+      el.style.whiteSpace = "";
+      btn.textContent = "Reveal Answer";
+      revealed = false;
+    }
+
+    function showFatal(msg) {
+      el.textContent = msg;
+      el.classList.add("error");
+      el.style.whiteSpace = "pre-line";
+      btn.disabled = true;
+    }
+
     btn.addEventListener("click", () => {
-      if (btn.textContent === "Reveal Answer") {
+      if (!riddles.length) return;
+      if (!revealed) {
         el.textContent = "Answer: " + riddles[i].a;
         btn.textContent = "Next Riddle";
+        revealed = true;
       } else {
         i = (i + 1) % riddles.length;
-        el.textContent = riddles[i].q;
-        btn.textContent = "Reveal Answer";
+        render();
       }
     });
+
+    loadRiddles()
+      .then(list => {
+        if (!list.length) { showFatal("The riddles file loaded but contained no valid riddles."); return; }
+        riddles = list;
+        countEl.textContent = list.length + " riddles loaded from data/riddles.csv";
+        render();
+      })
+      .catch(err => {
+        if (err.message === "FILE_PROTOCOL") {
+          showFatal("This page must be served over HTTP to read its data file.\n\nStart a local server in this folder, then reload:\n  python3 -m http.server 8000\n  → http://localhost:8000");
+        } else {
+          showFatal("Could not load riddles.csv (" + err.message + ").");
+        }
+      });
   </script>
 </body>
 </html>
