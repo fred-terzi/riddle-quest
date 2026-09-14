@@ -56,6 +56,33 @@
       gap: .5rem;
       margin-bottom: 1.25rem;
     }
+    .hint-row {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: .75rem;
+      align-items: center;
+    }
+    .hint-btn {
+      background: transparent;
+      border: 1px solid #334155;
+      color: var(--muted);
+      border-radius: 8px;
+      padding: .5rem 1rem;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .hint-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+    .hint-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .hint-text {
+      flex: 1;
+      font-size: .85rem;
+      color: var(--accent);
+      font-style: italic;
+      text-align: left;
+      min-height: 1.2rem;
+    }
     .input-row label {
       font-size: .85rem;
       color: var(--muted);
@@ -170,6 +197,10 @@
 
     <div class="riddle" id="riddle">Loading riddles…</div>
     <div class="feedback" id="feedback"></div>
+    <div class="hint-row">
+      <button class="hint-btn" id="hintBtn" disabled>💡 Hint</button>
+      <span class="hint-text" id="hintText"></span>
+    </div>
     <div class="progress-wrap" id="progressWrap">
       <div class="progress-label" id="progressLabel">0 / 10 solved</div>
       <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
@@ -189,6 +220,8 @@
     const countEl = document.getElementById("count");
     const feedbackEl = document.getElementById("feedback");
     const ageSelect = document.getElementById("ageSelect");
+    const hintBtn = document.getElementById("hintBtn");
+    const hintText = document.getElementById("hintText");
 
     let allRiddles = { under10: [], over10: [] };
     let riddles = [];
@@ -217,6 +250,8 @@
       el.textContent = "🎉 Level complete! You solved " + GOAL + " riddles. Nice work.";
       feedbackEl.textContent = "";
       feedbackEl.className = "feedback";
+      hintText.textContent = "";
+      hintBtn.disabled = true;
       btn.textContent = "Play Again";
       btn.disabled = false;
       input.disabled = true;
@@ -275,8 +310,10 @@
       const res = await fetch("data/riddles-categorized.json", { cache: "no-cache" });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
-      // Normalize: ensure each entry has q and a
-      const normalize = (arr) => arr.map(r => ({ q: r.q, a: r.a })).filter(r => r.q && r.a);
+      // Normalize: ensure each entry has q and a (carry hint through if present)
+      const normalize = (arr) => arr
+      .map(r => ({ q: r.q, a: r.a, hint: (r.hint || "").trim() }))
+      .filter(r => r.q && r.a);
       return {
         under10: normalize(data.under10 || []),
         over10: normalize(data.over10 || [])
@@ -297,6 +334,9 @@
       wasCorrect = false;
       feedbackEl.textContent = "";
       feedbackEl.className = "feedback";
+      hintText.textContent = "";
+      hintBtn.disabled = false;
+      hintBtn.textContent = "💡 Hint";
     }
 
     function showFatal(msg) {
@@ -305,9 +345,20 @@
       el.style.whiteSpace = "pre-line";
       feedbackEl.textContent = "";
       feedbackEl.className = "feedback";
+      hintText.textContent = "";
+      hintBtn.disabled = true;
       btn.disabled = true;
       input.disabled = true;
     }
+
+    function showHint() {
+      if (hintText.textContent) return; // already shown
+      hintText.textContent = riddles[i].hint || "(no hint for this riddle)";
+      hintBtn.disabled = true;
+      hintBtn.textContent = "💡 Shown";
+    }
+
+    hintBtn.addEventListener("click", showHint);
 
     function revealAnswer() {
       wasCorrect = false;
@@ -315,6 +366,7 @@
       feedbackEl.textContent = "";
       feedbackEl.className = "feedback";
       input.disabled = true;
+      hintBtn.disabled = true;
       btn.textContent = "Next Riddle";
       btn.disabled = false;
     }
@@ -328,6 +380,7 @@
         feedbackEl.textContent = "Nice work!";
         feedbackEl.className = "feedback correct";
         input.disabled = true;
+        hintBtn.disabled = true;
         btn.textContent = "Next Riddle";
         btn.disabled = false;
       } else {
