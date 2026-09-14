@@ -131,12 +131,43 @@
       transition: width .3s ease;
     }
     .progress-wrap.complete .progress-fill { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    /* ── Age group selector ── */
+    .age-select {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: 1.5rem;
+    }
+    .age-btn {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: .6rem .5rem;
+      color: var(--muted);
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .age-btn:hover { border-color: var(--accent); color: var(--text); }
+    .age-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
   </style>
 </head>
 <body>
   <main class="card">
     <h1><img src="assets/ridley_portrait.png" alt="Riddle Monster" width="48" height="48" style="border-radius:50%;vertical-align:middle;margin-right:.4rem;" /> Riddle Quest</h1>
     <p>Can you solve today's riddle?</p>
+
+    <div class="age-select" id="ageSelect">
+      <button class="age-btn" data-age="all">All</button>
+      <button class="age-btn active" data-age="under10">Kids &lt; 10</button>
+      <button class="age-btn" data-age="over10">Kids 10+</button>
+    </div>
+
     <div class="riddle" id="riddle">Loading riddles…</div>
     <div class="feedback" id="feedback"></div>
     <div class="progress-wrap" id="progressWrap">
@@ -147,7 +178,7 @@
       <label for="answerInput">Your answer:</label>
       <input type="text" id="answerInput" placeholder="Type your answer…" autocomplete="off" disabled />
     </div>
-    <button id="nextBtn" disabled>Reveal Answer</button>
+    <button id="nextBtn" disabled>Check Answer</button>
     <p class="count" id="count"></p>
   </main>
 
@@ -157,15 +188,19 @@
     const input = document.getElementById("answerInput");
     const countEl = document.getElementById("count");
     const feedbackEl = document.getElementById("feedback");
+    const ageSelect = document.getElementById("ageSelect");
+
+    let allRiddles = { under10: [], over10: [] };
     let riddles = [];
     let i = 0;
     let revealed = false;
+    let currentAge = "under10";
 
-    // ---------- Progress (GUI only — no correctness check yet) ----------
-    const GOAL = 10;      // riddles answered to complete the level
-    let solved = 0;       // how many the user has solved correctly
-    let wasCorrect = false; // whether the current riddle was answered correctly
-    let complete = false; // level finished state
+    // ---------- Progress ----------
+    const GOAL = 10;
+    let solved = 0;
+    let wasCorrect = false;
+    let complete = false;
     const progressWrap = document.getElementById("progressWrap");
     const progressLabel = document.getElementById("progressLabel");
     const progressFill = document.getElementById("progressFill");
@@ -191,13 +226,12 @@
       complete = false;
       solved = 0;
       i = 0;
-      shuffleDeck(); // fresh random order for the new round
+      shuffleDeck();
       progressWrap.classList.remove("complete");
       updateProgress();
       render();
     }
 
-    // Fisher-Yates shuffle — randomizes the order of the riddle deck in place
     function shuffleDeck() {
       for (let n = riddles.length - 1; n > 0; n--) {
         const m = Math.floor(Math.random() * (n + 1));
@@ -205,51 +239,48 @@
       }
     }
 
-    // ---------- CSV parser (RFC 4180: quoted fields, commas inside quotes) ----------
-    function parseCSV(text) {
-      const rows = [];
-      let row = [], field = "", inQuotes = false;
-      for (let idx = 0; idx < text.length; idx++) {
-        const c = text[idx];
-        if (inQuotes) {
-          if (c === '"') {
-            if (text[idx + 1] === '"') { field += '"'; idx++; }
-            else inQuotes = false;
-          } else field += c;
-        } else if (c === '"') {
-          inQuotes = true;
-        } else if (c === ',') {
-          row.push(field); field = "";
-        } else if (c === '\n' || c === '\r') {
-          if (c === '\r' && text[idx + 1] === '\n') idx++;
-          row.push(field); field = "";
-          rows.push(row); row = [];
-        } else {
-          field += c;
-        }
+    // ---------- Age group selector ----------
+    function selectAge(age) {
+      currentAge = age;
+      // Update active button
+      ageSelect.querySelectorAll(".age-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.age === age);
+      });
+      // Build the deck for this age
+      if (age === "all") {
+        riddles = allRiddles.under10.concat(allRiddles.over10);
+      } else {
+        riddles = allRiddles[age];
       }
-      if (field !== "" || row.length) { row.push(field); rows.push(row); }
-      return rows;
+      // Reset game state
+      complete = false;
+      solved = 0;
+      i = 0;
+      wasCorrect = false;
+      progressWrap.classList.remove("complete");
+      countEl.textContent = riddles.length + " riddles (" + age + ")";
+      shuffleDeck();
+      updateProgress();
+      render();
     }
 
-    // CSV text -> array of { q, a }, matched by header name with index fallback
-    function toRiddles(text) {
-      const rows = parseCSV(text);
-      if (!rows.length) return [];
-      const header = rows[0].map(h => h.trim().toLowerCase());
-      const qi = header.indexOf("questions") >= 0 ? header.indexOf("questions") : 0;
-      const ai = header.indexOf("answers") >= 0 ? header.indexOf("answers") : 1;
-      return rows.slice(1)
-        .map(r => ({ q: (r[qi] || "").trim(), a: (r[ai] || "").trim() }))
-        .filter(r => r.q && r.a);
-    }
+    ageSelect.addEventListener("click", (e) => {
+      const btn = e.target.closest(".age-btn");
+      if (btn) selectAge(btn.dataset.age);
+    });
 
     // ---------- Load ----------
     async function loadRiddles() {
       if (location.protocol === "file:") throw new Error("FILE_PROTOCOL");
-      const res = await fetch("data/riddles.csv", { cache: "no-cache" });
+      const res = await fetch("data/riddles-categorized.json", { cache: "no-cache" });
       if (!res.ok) throw new Error("HTTP " + res.status);
-      return toRiddles(await res.text());
+      const data = await res.json();
+      // Normalize: ensure each entry has q and a
+      const normalize = (arr) => arr.map(r => ({ q: r.q, a: r.a })).filter(r => r.q && r.a);
+      return {
+        under10: normalize(data.under10 || []),
+        over10: normalize(data.over10 || [])
+      };
     }
 
     function render() {
@@ -307,7 +338,6 @@
     }
 
     // ---------- Button state machine ----------
-    // CHECK → (correct → NEXT | wrong → REVEAL) → NEXT → CHECK …
     btn.addEventListener("click", () => {
       if (!riddles.length) return;
       if (complete) { resetGame(); return; }
@@ -335,7 +365,7 @@
       }
     });
 
-    // Enter key in the input triggers the same logic as clicking the button
+    // Enter key
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !input.disabled) {
         e.preventDefault();
@@ -343,19 +373,20 @@
       }
     });
 
+    // ---------- Init ----------
     loadRiddles()
-      .then(list => {
-        if (!list.length) { showFatal("The riddles file loaded but contained no valid riddles."); return; }
-        riddles = list;
-        shuffleDeck(); // start each level at a random riddle
-        countEl.textContent = list.length + " riddles loaded from data/riddles.csv";
-        render();
+      .then(data => {
+        allRiddles = data;
+        const total = allRiddles.under10.length + allRiddles.over10.length;
+        if (!total) { showFatal("The riddles file loaded but contained no valid riddles."); return; }
+        // Default to under10
+        selectAge("under10");
       })
       .catch(err => {
         if (err.message === "FILE_PROTOCOL") {
           showFatal("This page must be served over HTTP to read its data file.\n\nStart a local server in this folder, then reload:\n  python3 -m http.server 8000\n  → http://localhost:8000");
         } else {
-          showFatal("Could not load riddles.csv (" + err.message + ").");
+          showFatal("Could not load riddles-categorized.json (" + err.message + ").");
         }
       });
   </script>
