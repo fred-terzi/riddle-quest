@@ -51,6 +51,53 @@
       justify-content: center;
     }
     .riddle.error { font-style: normal; color: var(--text); text-align: left; }
+    .video-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .video-stage.hidden { display: none; }
+    .video-stage video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .start-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, .55);
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+    }
+    .start-overlay.hidden { display: none; }
+    .start-overlay .play-btn {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 24px rgba(0,0,0,.5);
+      padding: 0 0 0 .15rem;
+      transition: transform .15s;
+    }
+    .start-overlay:hover .play-btn { transform: scale(1.08); }
     .input-row {
       display: flex;
       gap: .5rem;
@@ -195,6 +242,13 @@
       <button class="age-btn" data-age="over10">Kids 10+</button>
     </div>
 
+    <div class="video-stage hidden" id="videoStage">
+      <video id="stageVideo" playsinline preload="none"></video>
+      <button class="start-overlay hidden" id="startOverlay" aria-label="Play with sound">
+        <span class="play-btn">▶</span>
+      </button>
+    </div>
+
     <div class="riddle" id="riddle">Loading riddles…</div>
     <div class="feedback" id="feedback"></div>
     <div class="hint-row">
@@ -213,6 +267,7 @@
     <p class="count" id="count"></p>
   </main>
 
+  <script src="assets/videos/engine.js"></script>
   <script>
     const el = document.getElementById("riddle");
     const btn = document.getElementById("nextBtn");
@@ -222,6 +277,10 @@
     const ageSelect = document.getElementById("ageSelect");
     const hintBtn = document.getElementById("hintBtn");
     const hintText = document.getElementById("hintText");
+    const videoStage = document.getElementById("videoStage");
+    const stageVideo = document.getElementById("stageVideo");
+    const startOverlay = document.getElementById("startOverlay");
+    VideoEngine.init({ stageEl: stageVideo });
 
     let allRiddles = { under10: [], over10: [] };
     let riddles = [];
@@ -255,23 +314,19 @@
       btn.textContent = "Play Again";
       btn.disabled = false;
       input.disabled = true;
+      setStageVisible(false);
+      VideoEngine.stop();
     }
 
     function resetGame() {
       complete = false;
       solved = 0;
       i = 0;
-      shuffleDeck();
+      wasCorrect = false;
       progressWrap.classList.remove("complete");
+      setupDeck();
       updateProgress();
       render();
-    }
-
-    function shuffleDeck() {
-      for (let n = riddles.length - 1; n > 0; n--) {
-        const m = Math.floor(Math.random() * (n + 1));
-        [riddles[n], riddles[m]] = [riddles[m], riddles[n]];
-      }
     }
 
     // ---------- Age group selector ----------
@@ -281,20 +336,14 @@
       ageSelect.querySelectorAll(".age-btn").forEach(b => {
         b.classList.toggle("active", b.dataset.age === age);
       });
-      // Build the deck for this age
-      if (age === "all") {
-        riddles = allRiddles.under10.concat(allRiddles.over10);
-      } else {
-        riddles = allRiddles[age];
-      }
-      // Reset game state
+      // Reset game state (setupDeck rebuilds the deck with the video riddles pinned first)
       complete = false;
       solved = 0;
       i = 0;
       wasCorrect = false;
       progressWrap.classList.remove("complete");
+      setupDeck();
       countEl.textContent = riddles.length + " riddles (" + age + ")";
-      shuffleDeck();
       updateProgress();
       render();
     }
@@ -304,15 +353,120 @@
       if (btn) selectAge(btn.dataset.age);
     });
 
+    // ---------- Video pilot (riddles 1–3, videoSet 1..3) ----------
+    // The three video riddles (first three under-10 entries) always open the
+    // deck, in order, unshuffled. Everything else is shuffled after them.
+    const VIDEO_RIDDLES = 3;
+
+    function setupDeck() {
+      // same source list selectAge used, rebuilt so we can reorder it
+      const source = currentAge === "all"
+        ? allRiddles.under10.concat(allRiddles.over10)
+        : allRiddles[currentAge] || [];
+      const video = source.filter(r => r.videoSet).slice(0, VIDEO_RIDDLES);
+      const rest = source.filter(r => !video.includes(r));
+      // Fisher-Yates the non-video tail only
+      for (let m = rest.length - 1; m > 0; m--) {
+        const k = Math.floor(Math.random() * (m + 1));
+        [rest[m], rest[k]] = [rest[k], rest[m]];
+      }
+      riddles = video.concat(rest);
+      // keep i on the same riddle object after reordering
+      if (!complete) {
+        const cur = riddles[i];
+        const found = cur ? riddles.indexOf(cur) : 0;
+        i = found >= 0 ? found : 0;
+      }
+    }
+
+    function currentHasVideo() {
+      const r = riddles[i];
+      return !!(r && r.videoSet);
+    }
+
+    function setStageVisible(visible) {
+      videoStage.classList.toggle("hidden", !visible);
+    }
+
+    function startVideoFlow() {
+      const n = riddles[i].videoSet;
+      input.disabled = true;      // typing opens only once the character is waiting
+      hintBtn.disabled = true;
+      btn.disabled = false;
+      // The overlay is hidden by the click handler (the user gesture that
+      // satisfies autoplay policy), not on the play() promise — so a
+      // rejected play() can't leave the ▶ button frozen on screen.
+      VideoEngine.playSequence([VideoEngine.clips.welcome, VideoEngine.clips.riddle(n)]);
+      hintText.textContent = ""; // hint (if requested) lands when he's done
+    }
+
+    // when the stream settles into the muted waiting loop, the riddle is "live":
+    // input + hint open (unless the riddle is already resolved), and any
+    // requested hint text lands on screen.
+    VideoEngine.setOnWaitingStart(() => {
+      const resolved = btn.textContent === "Next Riddle";
+      input.disabled = resolved;
+      if (!hintText.textContent && hintBtn.textContent.indexOf("Shown") >= 0) {
+        hintText.textContent = riddles[i].hint || "(no hint for this riddle)";
+      }
+      hintBtn.disabled = resolved || !!hintText.textContent;
+    });
+
+    function playWithSet(lead, clipFn) {
+      const n = riddles[i].videoSet;
+      VideoEngine.playSequence([lead, clipFn(n)]);
+    }
+
+    function showStartOverlay() {
+      // park on the first frame of the riddle clip behind a ▶ button.
+      // Use a one-shot listener so a late loadeddata can't re-seek the video
+      // mid-playback and race with playSequence() from the click handler.
+      const n = riddles[i].videoSet;
+      videoStage.classList.remove("hidden");
+      startOverlay.classList.remove("hidden");
+      stageVideo.removeAttribute("muted");
+      stageVideo.src = VideoEngine.clips.riddle(n);
+      const onLoaded = () => {
+        try { stageVideo.currentTime = 0.05; } catch (e) {}
+      };
+      stageVideo.addEventListener("loadeddata", onLoaded, { once: true });
+    }
+
+    startOverlay.addEventListener("click", () => {
+      if (!currentHasVideo()) return;
+      // Hide the overlay synchronously with the click. This is the user
+      // gesture that unlocks audio; deferring it to the play() promise
+      // meant an autoplay rejection left the ▶ button frozen over the
+      // black stage.
+      startOverlay.classList.add("hidden");
+      startVideoFlow();
+    });
+
+    // tiny test/debug handle (harmless in the game UI)
+    window.__rq = {
+      videoStage: () => !videoStage.classList.contains("hidden"),
+      currentSrc: () => stageVideo.currentSrc ? stageVideo.currentSrc.split("/").slice(-2).join("/") : "",
+      muted: () => stageVideo.muted,
+      engineMode: () => VideoEngine.isWaiting() ? "waiting" : (stageVideo.paused ? "idle" : "playing"),
+      clickStart: () => startOverlay.click(),
+      advance: () => { const c = stageVideo.currentTime || 0; stageVideo.currentTime = Math.max(c, (stageVideo.duration || 1) - 0.01); },
+      fireEnded: () => stageVideo.dispatchEvent(new Event("ended"))
+    };
+
     // ---------- Load ----------
     async function loadRiddles() {
       if (location.protocol === "file:") throw new Error("FILE_PROTOCOL");
       const res = await fetch("data/riddles-categorized.json", { cache: "no-cache" });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
-      // Normalize: ensure each entry has q and a (carry hint through if present)
+      // Normalize: ensure each entry has q and a (carry hint/videoSet through if present)
       const normalize = (arr) => arr
-      .map(r => ({ q: r.q, a: r.a, hint: (r.hint || "").trim() }))
+      .map(r => ({
+        q: r.q,
+        a: r.a,
+        hint: (r.hint || "").trim(),
+        videoSet: (r.videoSet ? Number(r.videoSet) : null)
+      }))
       .filter(r => r.q && r.a);
       return {
         under10: normalize(data.under10 || []),
@@ -337,6 +491,18 @@
       hintText.textContent = "";
       hintBtn.disabled = false;
       hintBtn.textContent = "💡 Hint";
+      // ---- video stage ----
+      if (currentHasVideo() && !complete) {
+        setStageVisible(true);
+        showStartOverlay(); // ▶ with sound, then the character opens the riddle
+        // park state: no audio until the player presses play
+        input.disabled = true;
+        hintBtn.disabled = true;
+        btn.disabled = true;
+      } else {
+        setStageVisible(false);
+        VideoEngine.stop(); // text-only riddle: cut the character off
+      }
     }
 
     function showFatal(msg) {
@@ -353,9 +519,15 @@
 
     function showHint() {
       if (hintText.textContent) return; // already shown
+      hintBtn.textContent = "💡 Shown";
+      if (currentHasVideo()) {
+        // character delivers the hint on video; the text lands when he's done
+        hintBtn.disabled = true;
+        playWithSet(VideoEngine.clips.heresAHint, VideoEngine.clips.hint);
+        return;
+      }
       hintText.textContent = riddles[i].hint || "(no hint for this riddle)";
       hintBtn.disabled = true;
-      hintBtn.textContent = "💡 Shown";
     }
 
     hintBtn.addEventListener("click", showHint);
@@ -369,6 +541,7 @@
       hintBtn.disabled = true;
       btn.textContent = "Next Riddle";
       btn.disabled = false;
+      if (currentHasVideo()) playWithSet(VideoEngine.clips.theAnswerIs, VideoEngine.clips.answer);
     }
 
     function checkAnswer() {
@@ -383,10 +556,12 @@
         hintBtn.disabled = true;
         btn.textContent = "Next Riddle";
         btn.disabled = false;
+        if (currentHasVideo()) playWithSet(VideoEngine.clips.theAnswerIs, VideoEngine.clips.answer);
       } else {
         feedbackEl.textContent = "❌ Not quite — try again, or leave it blank and click Reveal.";
         feedbackEl.className = "feedback wrong";
         btn.textContent = "Reveal";
+        if (currentHasVideo()) playWithSet(VideoEngine.clips.tryAgain, VideoEngine.clips.riddle);
       }
     }
 

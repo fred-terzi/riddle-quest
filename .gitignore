@@ -8,3 +8,9 @@ RIDDLE_QUEST.md
 
 # generated video assets (large, regenerate-able)
 assets/videos/
+
+# deps
+node_modules/
+
+# test artifacts
+screenshots/

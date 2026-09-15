@@ -1,0 +1,12 @@
+{
+  "name": "riddle-quest",
+  "private": true,
+  "version": "0.3.0",
+  "description": "Single-page riddle game with character video streams",
+  "scripts": {
+    "verify:video": "node scripts/verify_video.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}
