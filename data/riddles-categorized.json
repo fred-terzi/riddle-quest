@@ -1,69 +1,27 @@
 {
   "under10": [
     {
-      "q": "Almost everyone needs it, asks for it, gives it. But almost nobody takes it.",
-      "a": "advice",
-      "hint": "Something people ask for and give, but rarely take"
-    },
-    {
       "q": "What goes up but never comes down?",
       "a": "age",
-      "hint": "A number that only ever increases with you"
-    },
-    {
-      "q": "Die without me, never thank me. Walk right through me, never feel me. Always watching, never speaking. Always lurking, never seen.",
-      "a": "air",
-      "hint": "Invisible, but you need it every second to live"
-    },
-    {
-      "q": "I cost no money to use, or conscious effort to take part of. And as far as you can see, there is nothing to me. But without me, you are dead.",
-      "a": "air",
-      "hint": "You can't see it, but holding it in kills you"
-    },
-    {
-      "q": "Come up and let us go. Go down and here we stay.",
-      "a": "anchor",
-      "hint": "A heavy weight ships drop to hold their place"
+      "hint": "It's a number... that only grows with you.",
+      "videoSet": 1
     },
     {
       "q": "What do you throw out to use and take in when you're done?",
       "a": "anchor",
-      "hint": "You toss it overboard to keep a ship from drifting"
-    },
-    {
-      "q": "I'm very tempting, so its said, I have a shiny coat of red, and my flesh is white beneath. I smell so sweet, taste good to eat, and help to guard your teeth.",
-      "a": "apple",
-      "hint": "Red outside, white inside, with a seed in the middle"
-    },
-    {
-      "q": "I can be moved. I can be rolled. But nothing will I hold. I'm red and I'm blue, and I can be other colors too. Having no head, though similar in shape. I have no eyes - yet move all over the place.",
-      "a": "ball",
-      "hint": "Round, bouncy, and a favorite at recess"
+      "hint": "You toss it overboard to keep a ship from drifting",
+      "videoSet": 2
     },
     {
       "q": "A time when they're green. A time when they're brown. But both of these times, cause me to frown. But just in between, for a very short while. They're perfect and yellow. And cause me to smile.",
       "a": "bananas",
-      "hint": "Yellow when ripe; peel back the skin to eat"
+      "hint": "You want it to be ripe.",
+      "videoSet": 3
     },
     {
-      "q": "I sleep by day, I fly by night. I have no feathers to aid my flight.",
+      "q": "When I\u2019m metal or wood, I help you get home. When I'm alive, in the darkness I roam.",
       "a": "bat",
-      "hint": "A flying mammal that hangs upside down"
-    },
-    {
-      "q": "When I’m metal or wood, I help you get home. When I’m flesh and I’m blood, In the darkness I roam.",
-      "a": "bat",
-      "hint": "A flying animal that helps you find your way at night"
-    },
-    {
-      "q": "I am the yellow hem of the sea's blue skirt.",
-      "a": "beach",
-      "hint": "Sandy shore where the sea meets the land"
-    },
-    {
-      "q": "In the night a mountain, in the morning a meadow.",
-      "a": "bed",
-      "hint": "Furniture where you rest your head at night"
+      "hint": "A flying mammal that hangs upside down and uses echolocation to navigate"
     },
     {
       "q": "What is it that has four legs, one head, and a foot?",
@@ -71,64 +29,9 @@
       "hint": "Four legs, one head, and a place to rest"
     },
     {
-      "q": "Thousands lay up gold within this house. But no man made it. Spears past counting guard this house, but no man wards it.",
-      "a": "beehive",
-      "hint": "A home where insects store their sweet golden treasure"
-    },
-    {
-      "q": "Round as a button, deep as a well. If you want me to talk, you must first pull my tail.",
-      "a": "bell",
-      "hint": "Round, with a clapper inside that rings out"
-    },
-    {
-      "q": "You heart it speak, for it has a hard tongue. But it cannot breathe, for it has not a lung.",
-      "a": "bell",
-      "hint": "A metal thing with a hard tongue that speaks"
-    },
-    {
-      "q": "I am a fire's best friend. When fat, my body fills with wind. When pushed to thin, through my nose I blow. Then you can watch the embers glow.",
-      "a": "bellows",
-      "hint": "A bag you squeeze to blow air onto a fire"
-    },
-    {
-      "q": "You get many of me, but never enough. After the last one, your life soon will snuff. You may have one of me but one day a year, When the last one is gone, your life disappears.",
-      "a": "birthday",
-      "hint": "A day that comes once every year; you get one less each year"
-    },
-    {
-      "q": "I am seen in the water. If seen in the sky, I am in the rainbow, a jay's feather, and lapis lazuli.",
-      "a": "blue",
-      "hint": "A color you find in the sky, sea, and a bird"
-    },
-    {
-      "q": "My life is often a volume of grief, your help is needed to turn a new leaf. Stiff is my spine and my body is pale. But I'm always ready to tell a tale.",
-      "a": "book",
-      "hint": "Pages, a spine, and a story to tell"
-    },
-    {
-      "q": "Turns us on our backs, and open up our stomachs. You will be the wisest of men though at start a lummox.",
-      "a": "books",
-      "hint": "Objects that open up to show you their inside"
-    },
-    {
-      "q": "I heard of a wonder, of words moth-eaten. That is a strange thing, I thought, weird. That a man's song be swallowed by a worm. His blinded sentences, his bedside stand-by rustled in the night - and the robber-guest. Not one wit the wiser. For the words he had mumbled.",
-      "a": "bookworm",
-      "hint": "A nickname for someone who reads a lot"
-    },
-    {
-      "q": "Two brothers we are, great burdens we bear. All day we are bitterly pressed. Yet this I will say, we are full all the day, and empty when go to rest.",
-      "a": "boots",
-      "hint": "Worn in pairs on your feet; filled all day, empty at rest"
-    },
-    {
       "q": "I have a neck but no head. I have a body but no arm. I have a bottom but no leg.",
       "a": "bottle",
       "hint": "Has a neck, body, and bottom; holds liquid"
-    },
-    {
-      "q": "As light as a feather, but you can’t hold it for ten minutes.",
-      "a": "breath",
-      "hint": "You do it automatically and can't hold it long"
     },
     {
       "q": "Hard to catch, easy to hold. Can't be seen, unless it's cold.",
@@ -136,39 +39,9 @@
       "hint": "You can see it when the weather is cold"
     },
     {
-      "q": "I am free for the taking. Through all of your life, though given but once at birth. I am less than nothing in weight, but will fell the strongest of you if held.",
-      "a": "breath",
-      "hint": "Given at birth; holding it in will stop you"
-    },
-    {
-      "q": "I'm light as a feather, yet the strongest man can't hold me for more than 5 minutes.",
-      "a": "breath",
-      "hint": "You do it thousands of times a day without thinking"
-    },
-    {
       "q": "To cross the water I'm the way, for water I'm above. I touch it not and, truth to say, I neither swim nor move.",
       "a": "bridge",
       "hint": "Crosses water without touching it"
-    },
-    {
-      "q": "All about the house, with his lady he dances, yet he always works, and never romances.",
-      "a": "broom",
-      "hint": "A cleaning tool that dances around the house"
-    },
-    {
-      "q": "I have a hundred legs, but cannot stand. I have a long neck, but no head. I cannot see. I'm neat and tidy as can be.",
-      "a": "broom",
-      "hint": "Many bristle 'legs' and a long handle, yet cannot stand"
-    },
-    {
-      "q": "A muttered rumble was heard from the pen, and I, in my walking stopped to look in. What was this I saw? A massive beast, hoofed, and jawed. With spikes upon its mighty brow, I watched as he struck the turf and prowled. And yet for all of his magnificence, he couldn't get out of that wooden fence.",
-      "a": "bull",
-      "hint": "A large horned male cow in a pen"
-    },
-    {
-      "q": "What lies in a tunnel of darkness. That can only attack when pulled back?",
-      "a": "bullet",
-      "hint": "Travels through a dark tube; fires when pulled back"
     },
     {
       "q": "Flat as a leaf, round as a ring. Has two eyes, can't see a thing.",
@@ -181,19 +54,9 @@
       "hint": "You flip a new page of it each month"
     },
     {
-      "q": "I have one eye. See near and far. I hold the moments you treasure and the things that make you weep.",
-      "a": "camera",
-      "hint": "One lens ('eye') that captures the moments you treasure"
-    },
-    {
       "q": "Always wax, yet always wane: I melt, succumbed to the flame. Lighting darkness, with fate unblest, I soon devolve to shapeless mess.",
       "a": "candle",
       "hint": "Wax that melts as it burns; wind is its enemy"
-    },
-    {
-      "q": "My life can be measured in hours. I serve by being devoured. Thin, I am quick. Fat, I am slow. Wind is my foe.",
-      "a": "candle",
-      "hint": "Lives in hours, devoured by flame, thinned by use"
     },
     {
       "q": "What has 13 hearts but none beat?",
@@ -201,32 +64,12 @@
       "hint": "A set with thirteen of each suit"
     },
     {
-      "q": "What kind of pet always stays on the floor?",
-      "a": "carpet",
-      "hint": "A soft pet that always stays on the floor"
-    },
-    {
-      "q": "Halo of water, tongue of wood. Skin of stone, long I've stood. My fingers short reach to the sky. Inside my heart men live and die.",
-      "a": "castle",
-      "hint": "A stone fortress with towers, a moat, and a gate"
-    },
-    {
-      "q": "Stealthy as a shadow in the dead of night, cunning but affectionate if given a bite. Never owned but often loved. At my sport considered cruel, but that's because you never know me at all.",
-      "a": "cat",
-      "hint": "A pet that purrs, hisses, and chases mice"
-    },
-    {
-      "q": "Though desert men once called me God, today men call me mad. For I wag my tail when I am angry. And growl when I am glad.",
-      "a": "cat",
-      "hint": "A pet with whiskers, four paws, and a wagging tail"
-    },
-    {
       "q": "I'm not really more than holes tied to more holes. I'm strong as good steel, though not as stiff as a pole.",
       "a": "chain",
       "hint": "Linked metal rings, strong as steel"
     },
     {
-      "q": "I have legs but walk not, a strong back but work not. Two good arms but reach not. A seat but sit and tarry not.",
+      "q": "I have legs but walk not, a strong back but work not. Two good arms but reach not.",
       "a": "chair",
       "hint": "Furniture with legs, a back, and arms to sit on"
     },
@@ -236,24 +79,9 @@
       "hint": "Used for grilling; turns from black to red to white"
     },
     {
-      "q": "Not born, but from a Mother's body drawn. I hang until half of me is gone. I sleep in a cave until I grow old. Then valued for my hardened gold.",
-      "a": "cheese",
-      "hint": "Aged dairy product, often yellow and sharp"
-    },
-    {
-      "q": "I wear a red robe, with staff in hand, and a stone in my throat.",
-      "a": "cherry",
-      "hint": "A red fruit with a stem and a pit"
-    },
-    {
       "q": "I have a face, yet no senses. But I don't really care, because time is of the essence.",
       "a": "clock",
       "hint": "Tells time; has hands and a face"
-    },
-    {
-      "q": "This thing runs but cannot walk, sometimes sings but never talks. Lacks arms, has hands; lacks a head but has a face.",
-      "a": "clock",
-      "hint": "Has hands but no arms; a face but no head"
     },
     {
       "q": "I fly, yet I have no wings. I cry, yet I have no eyes. Darkness follows me. Lower light I never see.",
@@ -261,29 +89,9 @@
       "hint": "White and fluffy in the sky; brings rain"
     },
     {
-      "q": "Black we are and much admired. Many seek us if they are tired. We tire the horse, and comfort man, and turn White when we've fulfilled your plan.",
-      "a": "coal",
-      "hint": "Black rock that burns and turns white when done"
-    },
-    {
-      "q": "What’s black in the morning, red in the afternoon, and white at night?",
-      "a": "coal",
-      "hint": "Black, red when lit, white when spent"
-    },
-    {
-      "q": "A little pool with two layers of wall around it. One white and soft and the other dark and hard. Amidst a light brown grassy lawn with an outline of a green grass.",
-      "a": "coconut",
-      "hint": "Tropical nut with a hard brown shell and white flesh"
-    },
-    {
-      "q": "I am two-faced but bear only one. I have no legs but travel widely. Men spill much blood over me. Kings leave their imprint on me. I have greatest power when given away, yet lust for me keeps me locked away.",
-      "a": "coin",
-      "hint": "Round money with a head and a tail"
-    },
-    {
       "q": "What can you catch but not throw?",
       "a": "cold",
-      "hint": "You catch it but can't throw it back"
+      "hint": "Not something you want to catch! Doesn't make you feel too good."
     },
     {
       "q": "Metal or bone I may be, many teeth I have and always bared. Yet my bite harms no one. And ladies delight in my touch.",
@@ -351,7 +159,7 @@
       "hint": "A ring-shaped pastry with a hole in the middle"
     },
     {
-      "q": "Although my cow is dead, I still beat her What a racket she makes.",
+      "q": "Although my cow is dead, I still beat her\u0085 What a racket she makes.",
       "a": "drum",
       "hint": "You hit the skin to make a loud rhythm"
     },
@@ -386,7 +194,7 @@
       "hint": "Break it before you can cook or eat it"
     },
     {
-      "q": "I drift forever with the current down these long canals they’ve made, Tame, yet wild, I run elusive Multitasking to your aid. Before I came, the world was darker, colder, sometimes, rougher, true. But though I might make living easy, I’m good at killing people too.",
+      "q": "I drift forever with the current down these long canals they\u2019ve made, Tame, yet wild, I run elusive Multitasking to your aid. Before I came, the world was darker, colder, sometimes, rougher, true. But though I might make living easy, I\u2019m good at killing people too.",
       "a": "electricity",
       "hint": "Flows through wires, powers everything, but can shock you"
     },
@@ -626,7 +434,7 @@
       "hint": "A small opening in a door it never enters"
     },
     {
-      "q": "Of no use to one, Bliss to two. Men lie for it. The baby’s right,",
+      "q": "Of no use to one, Bliss to two. Men lie for it. The baby\u2019s right,",
       "a": "kiss",
       "hint": "Bliss to two; men lie for it"
     },
@@ -651,7 +459,7 @@
       "hint": "Green parts of trees that fall in autumn"
     },
     {
-      "q": "Walk on the living, they don’t even mumble. Walk on the dead, they mutter and grumble",
+      "q": "Walk on the living, they don\u2019t even mumble. Walk on the dead, they mutter and grumble",
       "a": "leaves",
       "hint": "Crunch when you walk on the dead ones"
     },
@@ -726,7 +534,7 @@
       "hint": "Everyone sees themselves in it; scratching ruins it"
     },
     {
-      "q": "When there is fire in me then I am still cold. When I own your true love’s face then you will not see me. To all things I give no more than I am given. In time I may have all things, and yet I can keep nothing.",
+      "q": "When there is fire in me then I am still cold. When I own your true love\u2019s face then you will not see me. To all things I give no more than I am given. In time I may have all things, and yet I can keep nothing.",
       "a": "mirror",
       "hint": "Reflects everything you put in front of it"
     },
@@ -831,7 +639,7 @@
       "hint": "A bird that hoots at night and never answers"
     },
     {
-      "q": "It holds most knowledge that has ever been said. But is not the brain, is not the head. To feathers and their masters, it's both bane and boonOne empty, and one full.",
+      "q": "It holds most knowledge that has ever been said. But is not the brain, is not the head. To feathers and their masters, it's both bane and boon\u0085One empty, and one full.",
       "a": "paper",
       "hint": "You write on it; holds most knowledge ever said"
     },
@@ -1016,7 +824,7 @@
       "hint": "The short finger on your hand, used for gestures"
     },
     {
-      "q": "Creatures of power, creatures of grade, creatures of beauty, creatures of strength. As for their lives, they set everything's pace. For all things must come to live. Under their emerald embraceEither in their life or in their death.",
+      "q": "Creatures of power, creatures of grade, creatures of beauty, creatures of strength. As for their lives, they set everything's pace. For all things must come to live. Under their emerald embrace\u0085Either in their life or in their death.",
       "a": "trees",
       "hint": "Tall plants that give shade and clean the air"
     },
@@ -1058,7 +866,7 @@
       "hint": "A game with 32 pieces on 64 squares"
     },
     {
-      "q": "What is it that given one, you’ll have either two or none?",
+      "q": "What is it that given one, you\u2019ll have either two or none?",
       "a": "choice",
       "hint": "Making a decision gives you two options or none"
     },
@@ -1068,7 +876,7 @@
       "hint": "Made by one, bought by one, used by another who doesn't want it"
     },
     {
-      "q": "The one who makes it, sells it. The one who buys it, never uses it. The one that uses it never knows that he’s using it.",
+      "q": "The one who makes it, sells it. The one who buys it, never uses it. The one that uses it never knows that he\u2019s using it.",
       "a": "coffin",
       "hint": "The maker sells it; the buyer never uses it"
     },
@@ -1253,7 +1061,7 @@
       "hint": "Pregnant every night (waxing) but never gives birth"
     },
     {
-      "q": "Scythe of darkness, Shadow’s light. Guiding eye of thirteenth sight.",
+      "q": "Scythe of darkness, Shadow\u2019s light. Guiding eye of thirteenth sight.",
       "a": "moon",
       "hint": "A scythe shape in the dark sky, guiding travelers"
     },
@@ -1313,7 +1121,7 @@
       "hint": "88 keys without locks that unlock your soul"
     },
     {
-      "q": "My first is twice in apple but not once in tart. My second is in liver but not in heart. My third is in giant and also in ghost. Whole I’m best when I am roast.",
+      "q": "My first is twice in apple but not once in tart. My second is in liver but not in heart. My third is in giant and also in ghost. Whole I\u2019m best when I am roast.",
       "a": "pig",
       "hint": "A word puzzle: an animal, best when roasted"
     },
@@ -1358,7 +1166,7 @@
       "hint": "Builds castles, erodes mountains, blinds and helps"
     },
     {
-      "q": "One by one we fall from heaven down into the depths of past, And our world is ever upturned so that yet some time we’ll last.",
+      "q": "One by one we fall from heaven down into the depths of past, And our world is ever upturned so that yet some time we\u2019ll last.",
       "a": "sand",
       "hint": "Falls from the sky; the world is made of it"
     },
@@ -1523,7 +1331,7 @@
       "hint": "Moves on silk threads, leaves a web behind"
     },
     {
-      "q": "I went to the woods and got it, when i got it didn’t want it, looked for it, couldn’t find it so I took it home.",
+      "q": "I went to the woods and got it, when i got it didn\u2019t want it, looked for it, couldn\u2019t find it so I took it home.",
       "a": "splinter",
       "hint": "A tiny sliver of wood stuck in your skin"
     },
@@ -1578,7 +1386,7 @@
       "hint": "The more you take, the more you leave behind"
     },
     {
-      "q": "Four of us are in your field, But our differences keep us at yield, First, a one that is no fool, Though he resembles a gardener’s tool, Next, one difficult to split in two, And a girl once had one as big as her shoe, Then, to the mind, one’s a lovely bonder, And truancy makes it grow fonder, Last, a stem connecting dots of three",
+      "q": "Four of us are in your field, But our differences keep us at yield, First, a one that is no fool, Though he resembles a gardener\u2019s tool, Next, one difficult to split in two, And a girl once had one as big as her shoe, Then, to the mind, one\u2019s a lovely bonder, And truancy makes it grow fonder, Last, a stem connecting dots of three",
       "a": "suits",
       "hint": "A word puzzle about four things found in a field"
     },
@@ -1653,7 +1461,7 @@
       "hint": "A sharp point on a plant; walked into and thrown away"
     },
     {
-      "q": "Soft and fragile is my skin, I get my growth in mud. I’m dangerous as much as pretty, for if not careful, I draw blood.",
+      "q": "Soft and fragile is my skin, I get my growth in mud. I\u2019m dangerous as much as pretty, for if not careful, I draw blood.",
       "a": "thorn",
       "hint": "Soft and pretty but draws blood if you're careless"
     },
@@ -1708,7 +1516,7 @@
       "hint": "Always to come, never seen by anyone"
     },
     {
-      "q": "Forward I’m heavy, but backwards I’m not.",
+      "q": "Forward I\u2019m heavy, but backwards I\u2019m not.",
       "a": "ton",
       "hint": "A unit of weight that's heavy forward, light backwards"
     },
@@ -1718,7 +1526,7 @@
       "hint": "Held in the mouth, wet, and bites"
     },
     {
-      "q": "Blend a teapot shot so the pearlies won’t rot!",
+      "q": "Blend a teapot shot so the pearlies won\u2019t rot!",
       "a": "toothpaste",
       "hint": "A teapot shot (tub) to keep the pearlies (teeth) from rotting"
     },
