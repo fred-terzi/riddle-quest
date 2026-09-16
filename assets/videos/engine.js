@@ -31,10 +31,36 @@
   };
   const WAIT_COUNT = 4;
 
+  // ── Blob pool: fetch every clip once at init, hold object URLs in memory.
+  //    setClip() swaps in the object URL — no repeated GETs, no black flash.
+  const PILOT_RIDDLES = 3;
+  const ALL_CLIPS = [
+    CLIPS.welcome, CLIPS.theAnswerIs, CLIPS.tryAgain, CLIPS.heresAHint,
+    ...Array.from({length: PILOT_RIDDLES}, (_, i) => CLIPS.riddle(i+1)),
+    ...Array.from({length: PILOT_RIDDLES}, (_, i) => CLIPS.hint(i+1)),
+    ...Array.from({length: PILOT_RIDDLES}, (_, i) => CLIPS.answer(i+1)),
+    ...Array.from({length: WAIT_COUNT},   (_, i) => CLIPS.wait(i+1)),
+  ];
+  const pool = new Map();   // rawUrl → objectURL
+  function objUrl(raw) { return pool.has(raw) ? pool.get(raw) : raw; }
+
+  async function warmPool() {
+    try {
+      const entries = await Promise.all(ALL_CLIPS.map(async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(url + " → HTTP " + res.status);
+        return [url, URL.createObjectURL(await res.blob())];
+      }));
+      entries.forEach(([raw, bu]) => pool.set(raw, bu));
+      // eslint-disable-next-line no-console
+      console.log("[video] blob pool warmed: " + pool.size + "/" + ALL_CLIPS.length + " clips");
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[video] blob pool partial (falling back to raw URLs):", e.message);
+    }
+  }
+
   let stage = null;               // the <video> element
-  const preloadEl = document.createElement("video"); // hidden, just for buffering
-  preloadEl.preload = "auto";
-  preloadEl.muted = true;
 
   let queue = [];
   let mode = "idle";              // "sequence" | "waiting" | "idle"
@@ -64,34 +90,24 @@
     return queue.length ? queue.shift() : null;
   }
 
-  // Pure peek: return the next clip's URL WITHOUT consuming it.
-  // Used by preload() so that setClip's buffering call can't eat
-  // the queue (was the root cause of riddle/hint/answer clips never playing).
-  function peekNext() {
-    if (mode === "waiting") {
-      return CLIPS.wait(((waitIdx + 1) % WAIT_COUNT) + 1);
-    }
-    return queue.length ? queue[0] : null;
-  }
-
-  // Buffer the next clip while the current one plays, so the hand-off is gap-free.
-  function preload(src) {
-    if (!src) return;
-    if (src === stage.src) return; // nothing new to buffer
-    preloadEl.src = src;
-  }
-
-  function setClip(url) {
-    stage.src = url;
-    preload(peekNext());   // peek, not consume
+  // Swap the stage to a clip. Uses the blob pool (object URL) when available,
+  // falling back to the raw network URL if the pool isn't warm yet.
+  // Exposes the raw path on the element so verify scripts can assert clip name.
+  function setClip(rawUrl) {
+    stage.src = objUrl(rawUrl);
+    stage.dataset.clip   = rawUrl.split("/").pop();  // filename, for verify scripts
+    stage.dataset.clipUrl = rawUrl;                  // full raw path, for vlog
   }
 
   // Single, well-logged play() call per state transition.
+  // AbortError is benign: setting a new `src` supersedes the previous in-flight
+  // play(), so the old promise rejects — that's the expected hand-off, not a fault.
   // The host page hides its own overlay in the click handler, not on the
   // play() promise — that way an autoplay-policy rejection can't leave the
   // overlay frozen forever.
   function safePlay() {
     stage.play().catch(err => {
+      if (err && err.name === "AbortError") return;   // superseded by a new load — expected
       // eslint-disable-next-line no-console
       console.warn("[video] play() rejected:", err);
     });
@@ -100,8 +116,7 @@
   // Log a clip actually starting playback (fired once per clip).
   function onPlaying() {
     if (!stage) return;
-    const short = (stage.currentSrc || "").split("/").pop() || "?";
-    vlog("PLAYING", stage.currentSrc);
+    vlog("PLAYING", stage.dataset.clipUrl);
   }
 
   // Handle the end of a clip (or a failed load) by chaining the next one.
@@ -109,7 +124,7 @@
   // parked still-frame behind the start overlay never triggers a chain.
   function onEnded() {
     if (mode === "idle") return;
-    vlog("ended", stage.currentSrc);
+    vlog("ended", stage.dataset.clipUrl);
 
     const url = nextClip();
     if (url === null) {
@@ -130,9 +145,9 @@
 
   // A clip that fails to load never fires "ended" — don't let the stream stall.
   function onMediaError() {
-    if (!stage || !stage.currentSrc || mode === "idle") return;
+    if (!stage || !stage.dataset.clipUrl || mode === "idle") return;
     // eslint-disable-next-line no-console
-    console.error("[video] clip failed to load:", stage.src, stage.error);
+    console.error("[video] clip failed to load:", stage.dataset.clipUrl, stage.error);
     onEnded();
   }
 
@@ -142,6 +157,7 @@
       stage.addEventListener("ended", onEnded);
       stage.addEventListener("error", onMediaError);
       stage.addEventListener("playing", onPlaying);  // fires once per actual play
+      warmPool();   // fire-and-forget; pool is best-effort
       return api;
     },
 

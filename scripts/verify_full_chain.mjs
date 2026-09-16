@@ -44,11 +44,12 @@ try {
   await page.goto(BASE + "/index.html", { waitUntil: "networkidle" });
   await page.waitForFunction(() => window.__rq);
 
-  // Helper: wait until a clip with this name is currentSrc AND playing, or time out.
+  // Helper: wait until a clip with this name is set on the stage AND playing.
+  // Uses dataset.clip (raw path) because currentSrc is now a blob: URL.
   const waitClip = (name, ms = 4000) => page.waitForFunction(
     (n) => {
       const v = document.getElementById("stageVideo");
-      return v && v.currentSrc && v.currentSrc.split("/").pop() === n && !v.paused && !v.ended;
+      return v && v.dataset && v.dataset.clip === n && !v.paused && !v.ended;
     },
     name, { timeout: ms });
 

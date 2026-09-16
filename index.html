@@ -460,7 +460,7 @@
     // tiny test/debug handle (harmless in the game UI)
     window.__rq = {
       videoStage: () => !videoStage.classList.contains("hidden"),
-      currentSrc: () => stageVideo.currentSrc ? stageVideo.currentSrc.split("/").slice(-2).join("/") : "",
+      currentSrc: () => stageVideo.dataset.clip || "",
       muted: () => stageVideo.muted,
       engineMode: () => VideoEngine.isWaiting() ? "waiting" : (stageVideo.paused ? "idle" : "playing"),
       clickStart: () => startOverlay.click(),

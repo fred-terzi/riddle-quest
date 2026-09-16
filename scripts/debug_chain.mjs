@@ -22,14 +22,13 @@ try {
     const ts = () => (performance.now() - t0).toFixed(0).padStart(5);
     ["loadedmetadata","loadeddata","canplay","playing","pause","seeked","waiting","error","ended","emptied","stalled"].forEach(t =>
       v.addEventListener(t, () => log.push(
-        "[" + ts() + "ms] " + t + " src=" + (v.currentSrc.split("/").pop()||"-") +
-        " started=" + (v.__startedSrc ? v.__startedSrc.split("/").pop() : "-") +
+        "[" + ts() + "ms] " + t + " clip=" + (v.dataset.clip||"-") +
         " t=" + (isFinite(v.currentTime) ? v.currentTime.toFixed(2) : "NaN") + " d=" + (isFinite(v.duration) ? v.duration.toFixed(2) : "NaN")
       )));
-    log.push("parked: " + (v.currentSrc.split("/").pop()));
+    log.push("parked: " + (v.dataset.clip || "-"));
     window.__rq.clickStart();
     await new Promise(r => setTimeout(r, 2500));
-    log.push(">> 2.5s later: src=" + v.currentSrc.split("/").pop() + " started=" + (v.__startedSrc?v.__startedSrc.split("/").pop():"-") + " paused=" + v.paused + " playing=" + !v.paused);
+    log.push(">> 2.5s later: clip=" + (v.dataset.clip||"-") + " paused=" + v.paused + " playing=" + !v.paused);
     return log;
   });
   out.forEach(l => console.log(l));
