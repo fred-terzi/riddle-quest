@@ -1,48 +1,77 @@
 /* Riddle Quest — video stream engine
  *
- * Streams the character clips back-to-back on a single <video> element.
- * Two modes:
- *   - sequence: a list of clips with SOUND (e.g. welcome → riddle, or
- *     try_again, or the_answer_is → answer), then automatically hands over
- *     to the muted waiting loop.
- *   - waiting loop: wait_1 → wait_2 → wait_3 → wait_4 → …, MUTED, forever
- *     until the next sequence cuts in.
+ * Streams the character clips back-to-back with seamless hand-offs so there is
+ * never a black frame between clips.
  *
- * Public API (window.VideoEngine):
- *   init({ stageEl })
- *   playSequence(urls, { onFirstPlaying }) — unmuted; cuts in over waiting loop
- *   startWaitingLoop()                      — muted
- *   stop()                                  — pause (host page hides the stage)
- *   isWaiting()
+ * How it works
+ * ────────────
+ * Two fixed <video> elements are stacked (both absolutely positioned inside the
+ * stage). One is always the ACTIVE layer (opacity 1, playing); the other is the
+ * STANDBY layer (opacity 0, pre-rolling the next clip).
+ *
+ * Every cut does the same thing:
+ *   1. Load the next clip on the STANDBY layer.
+ *   2. Wait until that layer is actually displaying a frame (`playing` event,
+ *      with a hard timeout fallback).
+ *   3. Crossfade: make the STANDBY layer active, fade the old one out.
+ *   4. Swap: the old active layer becomes the new standby for the next cut.
+ *
+ * The visible surface therefore never clears to black — the outgoing clip stays
+ * on screen (fading out) until the incoming clip is guaranteed to be playing.
+ *
+ * If the standby layer can't autoplay (NotAllowedError, a real error, or a
+ * timeout) we fall back to a direct swap on the ACTIVE layer. That is the safe
+ * path — playback always continues — and it only shows the brief black frame
+ * that a plain single-<video> swap would show.
+ *
+ * Two modes
+ * ─────────
+ *   sequence: a list of clips with SOUND (welcome → riddle, try_again,
+ *             the_answer_is → answer, etc.), then hands off to the waiting loop.
+ *   waiting:  wait_1 → wait_2 → wait_3 → wait_4 → …, MUTED, forever until the
+ *             next sequence cuts in.
+ *
+ * Public API (window.VideoEngine)
+ * ───────────────────────────────
+ *   init({ stageEl, backEl })
+ *   playSequence(urls)           — unmuted; cuts in over the waiting loop
+ *   startWaitingLoop()           — muted
+ *   park(url)                    — freeze first frame behind the start overlay
+ *   stop()                       — pause (host page hides the stage)
+ *   isWaiting()                  — true while in the waiting loop
+ *   activeClip()                 — raw URL currently on screen
+ *   activePlaying()              — true if the active clip is playing
+ *   clips                        — the CLIPS name table
  */
 (function () {
   "use strict";
 
   const V = (p) => "assets/videos/" + p;
   const CLIPS = {
-    welcome: V("game_play/welcome_1.mp4"),
-    riddle: (n) => V("riddles/riddle_" + n + ".mp4"),
-    answer: (n) => V("answers/answer_" + n + ".mp4"),
-    hint: (n) => V("hints/hint_" + n + ".mp4"),
+    welcome:     V("game_play/welcome_1.mp4"),
+    riddle:      (n) => V("riddles/riddle_" + n + ".mp4"),
+    answer:      (n) => V("answers/answer_" + n + ".mp4"),
+    hint:        (n) => V("hints/hint_" + n + ".mp4"),
     theAnswerIs: V("game_play/the_answer_is.mp4"),
-    tryAgain: V("game_play/try_again.mp4"),
-    heresAHint: V("game_play/heres_a_hint.mp4"),
-    wait: (n) => V("waiting_videos/wait_" + n + ".mp4"),
+    tryAgain:    V("game_play/try_again.mp4"),
+    heresAHint:  V("game_play/heres_a_hint.mp4"),
+    wait:        (n) => V("waiting_videos/wait_" + n + ".mp4"),
   };
   const WAIT_COUNT = 4;
 
-  // ── Blob pool: fetch every clip once at init, hold object URLs in memory.
-  //    setClip() swaps in the object URL — no repeated GETs, no black flash.
+  // ── Blob pool ──────────────────────────────────────────────────────────────
+  // Fetch every clip once at init and hold object URLs in memory.
+  // setClip() uses the object URL — no repeated network GETs.
   const PILOT_RIDDLES = 3;
   const ALL_CLIPS = [
     CLIPS.welcome, CLIPS.theAnswerIs, CLIPS.tryAgain, CLIPS.heresAHint,
-    ...Array.from({length: PILOT_RIDDLES}, (_, i) => CLIPS.riddle(i+1)),
-    ...Array.from({length: PILOT_RIDDLES}, (_, i) => CLIPS.hint(i+1)),
-    ...Array.from({length: PILOT_RIDDLES}, (_, i) => CLIPS.answer(i+1)),
-    ...Array.from({length: WAIT_COUNT},   (_, i) => CLIPS.wait(i+1)),
+    ...Array.from({ length: PILOT_RIDDLES }, (_, i) => CLIPS.riddle(i + 1)),
+    ...Array.from({ length: PILOT_RIDDLES }, (_, i) => CLIPS.hint(i + 1)),
+    ...Array.from({ length: PILOT_RIDDLES }, (_, i) => CLIPS.answer(i + 1)),
+    ...Array.from({ length: WAIT_COUNT },   (_, i) => CLIPS.wait(i + 1)),
   ];
   const pool = new Map();   // rawUrl → objectURL
-  function objUrl(raw) { return pool.has(raw) ? pool.get(raw) : raw; }
+  const objUrl = (raw) => pool.has(raw) ? pool.get(raw) : raw;
 
   async function warmPool() {
     try {
@@ -52,36 +81,118 @@
         return [url, URL.createObjectURL(await res.blob())];
       }));
       entries.forEach(([raw, bu]) => pool.set(raw, bu));
-      // eslint-disable-next-line no-console
       console.log("[video] blob pool warmed: " + pool.size + "/" + ALL_CLIPS.length + " clips");
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.warn("[video] blob pool partial (falling back to raw URLs):", e.message);
     }
   }
 
-  let stage = null;               // the <video> element
-
-  let queue = [];
-  let mode = "idle";              // "sequence" | "waiting" | "idle"
-  let waitIdx = 0;
+  // ── Layer state ────────────────────────────────────────────────────────────
+  // `active`  = the <video> element currently on screen (top, opacity 1)
+  // `standby` = the <video> element pre-rolling the next clip (bottom, opacity 0)
+  // `activeEl` and `standbyEl` are the two fixed elements from init.
+  let activeEl  = null;
+  let standbyEl = null;
+  let queue     = [];
+  let mode      = "idle";   // "sequence" | "waiting" | "idle"
+  let waitIdx   = 0;
   let onWaitingStartCb = null;
 
-  // ── Structured log: every clip transition is visible in the console ──
-  let _clipSeq = 0;              // monotonically increasing, for ordering
+  // ── Structured log ─────────────────────────────────────────────────────────
+  let _seq = 0;
   function vlog(label, url) {
-    _clipSeq++;
+    _seq++;
     const short = url ? url.split("/").slice(-2).join("/") : "(none)";
-    // eslint-disable-next-line no-console
+    const activeClipName = activeEl ? (activeEl.dataset.clip || "(none)") : "(none)";
     console.log(
-      "[video] #" + _clipSeq + " " + label,
+      "[video] #" + _seq + " " + label,
       "→ " + short,
       "| mode=" + mode +
       " queue=[" + queue.map(u => u.split("/").pop()).join(", ") + "]" +
-      " muted=" + (stage ? stage.muted : "?")
+      " active=" + activeClipName +
+      " muted=" + (activeEl ? activeEl.muted : "?")
     );
   }
 
+  // ── Element helpers ────────────────────────────────────────────────────────
+  function setClipOn(el, rawUrl, muted) {
+    el.muted = !!muted;
+    el.currentTime = 0;
+    el.src = objUrl(rawUrl);
+    el.dataset.clip    = rawUrl.split("/").pop();
+    el.dataset.clipUrl = rawUrl;
+  }
+
+  // Returns a Promise that resolves when `el` is actually displaying a frame
+  // (the `playing` event), with a timeout.
+  //
+  // `AbortError` from play() is normal and NOT a failure — it just means a
+  // previous play() was superseded. Only a real `error` event or a hard
+  // timeout rejects this promise.
+  function showingFrame(el, timeoutMs = 3000) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const settle = (fn) => { if (!settled) { settled = true; fn(); } };
+      const timer = setTimeout(
+        () => settle(() => reject(new Error("showingFrame timeout"))),
+        timeoutMs
+      );
+      el.addEventListener("playing", () => {
+        clearTimeout(timer);
+        settle(resolve);
+      }, { once: true });
+      el.addEventListener("error", () => {
+        clearTimeout(timer);
+        settle(() => reject(new Error("element error")));
+      }, { once: true });
+      const p = el.play();
+      if (p && p.catch) p.catch((err) => {
+        if (err && err.name === "AbortError") return;   // superseded — not a fault
+        clearTimeout(timer);
+        settle(() => reject(err));
+      });
+    });
+  }
+
+  // Promote standby over active (crossfade), then demote old active to standby.
+  function promote(newActive, oldActive) {
+    newActive.classList.add("active");
+    oldActive.classList.remove("active");
+    activeEl  = newActive;
+    standbyEl = oldActive;
+    oldActive.pause();
+  }
+
+  // Safe, no-black handoff. Loads clip on the standby layer, waits for a real
+  // frame, then crossfades. Falls back to directCut if standby can't autoplay.
+  async function cutTo(rawUrl, muted) {
+    if (!activeEl) { return; }
+    if (!standbyEl) { directCut(rawUrl, muted); return; }
+
+    setClipOn(standbyEl, rawUrl, muted);
+    try {
+      await showingFrame(standbyEl);
+    } catch (err) {
+      console.warn("[video] crossfade fallback (direct swap):", err && err.name || err);
+      directCut(rawUrl, muted);
+      return;
+    }
+    promote(standbyEl, activeEl);
+  }
+
+  // Direct swap on the active layer. Safe but can show a brief black frame —
+  // used only as the fallback when the crossfade path fails.
+  function directCut(rawUrl, muted) {
+    if (!activeEl) return;
+    setClipOn(activeEl, rawUrl, muted);
+    const p = activeEl.play();
+    if (p && p.catch) p.catch((err) => {
+      if (err && err.name === "AbortError") return;
+      console.warn("[video] play() rejected:", err);
+    });
+  }
+
+  // ── Queue / mode state machine ─────────────────────────────────────────────
   function nextClip() {
     if (mode === "waiting") {
       waitIdx = (waitIdx + 1) % WAIT_COUNT;
@@ -90,114 +201,94 @@
     return queue.length ? queue.shift() : null;
   }
 
-  // Swap the stage to a clip. Uses the blob pool (object URL) when available,
-  // falling back to the raw network URL if the pool isn't warm yet.
-  // Exposes the raw path on the element so verify scripts can assert clip name.
-  function setClip(rawUrl) {
-    stage.src = objUrl(rawUrl);
-    stage.dataset.clip   = rawUrl.split("/").pop();  // filename, for verify scripts
-    stage.dataset.clipUrl = rawUrl;                  // full raw path, for vlog
-  }
-
-  // Single, well-logged play() call per state transition.
-  // AbortError is benign: setting a new `src` supersedes the previous in-flight
-  // play(), so the old promise rejects — that's the expected hand-off, not a fault.
-  // The host page hides its own overlay in the click handler, not on the
-  // play() promise — that way an autoplay-policy rejection can't leave the
-  // overlay frozen forever.
-  function safePlay() {
-    stage.play().catch(err => {
-      if (err && err.name === "AbortError") return;   // superseded by a new load — expected
-      // eslint-disable-next-line no-console
-      console.warn("[video] play() rejected:", err);
-    });
-  }
-
-  // Log a clip actually starting playback (fired once per clip).
-  function onPlaying() {
-    if (!stage) return;
-    vlog("PLAYING", stage.dataset.clipUrl);
-  }
-
-  // Handle the end of a clip (or a failed load) by chaining the next one.
-  // Only acts when the engine owns the stream (mode !== "idle"), so the
-  // parked still-frame behind the start overlay never triggers a chain.
   function onEnded() {
     if (mode === "idle") return;
-    vlog("ended", stage.dataset.clipUrl);
+    vlog("ended", activeEl ? activeEl.dataset.clipUrl : null);
 
     const url = nextClip();
     if (url === null) {
-      // Sequence finished → hand over to the muted waiting loop.
       vlog("sequence complete → waiting loop");
       mode = "waiting";
       waitIdx = 0;
       if (onWaitingStartCb) onWaitingStartCb();
-      stage.muted = true; // waiting clips are muted, per the pilot rules
-      setClip(CLIPS.wait(1));
-      safePlay();
+      cutTo(CLIPS.wait(1), true);
       return;
     }
     vlog("advance →", url);
-    setClip(url);
-    safePlay();
+    cutTo(url, false);
   }
 
-  // A clip that fails to load never fires "ended" — don't let the stream stall.
+  function onPlaying() {
+    if (activeEl) vlog("PLAYING", activeEl.dataset.clipUrl);
+  }
+
   function onMediaError() {
-    if (!stage || !stage.dataset.clipUrl || mode === "idle") return;
-    // eslint-disable-next-line no-console
-    console.error("[video] clip failed to load:", stage.dataset.clipUrl, stage.error);
+    if (!activeEl || mode === "idle") return;
+    console.error("[video] clip failed to load:", activeEl.dataset.clipUrl, activeEl.error);
     onEnded();
   }
 
+  // Event wiring — only the active element drives the state machine.
+  // We bind to both elements and check the target, so the binding survives
+  // the promote/swap without re-wiring.
+  const wireHandler = (el) => {
+    el.addEventListener("ended",   () => { if (el === activeEl) onEnded(); });
+    el.addEventListener("playing", () => { if (el === activeEl) onPlaying(); });
+    el.addEventListener("error",   () => { if (el === activeEl) onMediaError(); });
+  };
+
   const api = {
     init(opts) {
-      stage = opts.stageEl;
-      stage.addEventListener("ended", onEnded);
-      stage.addEventListener("error", onMediaError);
-      stage.addEventListener("playing", onPlaying);  // fires once per actual play
+      activeEl  = opts.stageEl;
+      standbyEl = opts.backEl || null;
+      if (activeEl) { activeEl.classList.add("active"); wireHandler(activeEl); }
+      if (standbyEl) { wireHandler(standbyEl); }
       warmPool();   // fire-and-forget; pool is best-effort
       return api;
     },
 
-    /** Unmuted clip sequence; takes over from the waiting loop instantly. */
     playSequence(urls) {
-      if (!stage || !urls || !urls.length) return;
+      if (!activeEl || !urls || !urls.length) return;
       queue = urls.slice();
       mode = "sequence";
       const first = queue.shift();
-      stage.removeAttribute("muted");
-      stage.muted = false;
       vlog("sequence start [" + urls.length + " clips]", first);
-      setClip(first);
-      safePlay();
+      cutTo(first, false);
     },
 
-    /** Start the muted waiting loop (wait_1 → wait_2 → …). */
     startWaitingLoop() {
-      if (!stage) return;
+      if (!activeEl) return;
       vlog("waiting loop start");
       mode = "waiting";
       waitIdx = 0;
       if (onWaitingStartCb) onWaitingStartCb();
-      stage.muted = true;
-      setClip(CLIPS.wait(1));
-      safePlay();
+      cutTo(CLIPS.wait(1), true);
     },
 
-    /** Pause playback (host page hides the stage; last frame stays put). */
+    /** Freeze first frame behind the start overlay (muted, paused, no autoplay). */
+    park(rawUrl) {
+      if (!activeEl) return;
+      setClipOn(activeEl, rawUrl, true);
+      activeEl.pause();
+      const trySeek = () => { try { activeEl.currentTime = 0.05; } catch (e) {} };
+      if (activeEl.readyState >= 2) trySeek();
+      else activeEl.addEventListener("loadeddata", trySeek, { once: true });
+    },
+
     stop() {
-      if (!stage) return;
+      if (activeEl)  activeEl.pause();
+      if (standbyEl) standbyEl.pause();
       vlog("stop");
       mode = "idle";
       queue = [];
-      stage.pause();
     },
 
     setOnWaitingStart(cb) { onWaitingStartCb = cb; return api; },
 
-    isWaiting() { return mode === "waiting"; },
+    isWaiting()     { return mode === "waiting"; },
+    activeClip()    { return activeEl ? (activeEl.dataset.clipUrl || "") : ""; },
+    activePlaying() { return !!(activeEl && !activeEl.paused && activeEl.readyState >= 2); },
+    activeMuted()   { return !!(activeEl && activeEl.muted); },
 
     clips: CLIPS,
   };

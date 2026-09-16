@@ -44,21 +44,20 @@ try {
   await page.goto(BASE + "/index.html", { waitUntil: "networkidle" });
   await page.waitForFunction(() => window.__rq);
 
-  // Helper: wait until a clip with this name is set on the stage AND playing.
-  // Uses dataset.clip (raw path) because currentSrc is now a blob: URL.
+  // Helper: wait until a clip with this name is on the active layer AND playing.
+  // Uses VideoEngine.activeClip() because the two layers swap.
   const waitClip = (name, ms = 4000) => page.waitForFunction(
     (n) => {
-      const v = document.getElementById("stageVideo");
-      return v && v.dataset && v.dataset.clip === n && !v.paused && !v.ended;
+      return window.VideoEngine && window.VideoEngine.activeClip().endsWith(n) && window.VideoEngine.activePlaying();
     },
     name, { timeout: ms });
 
-  // Helper: deterministically fire the clip's `ended` event so the engine
-  // chains to the next clip. (The natural `ended` path is already validated
-  // in step 1 & 2 via real event logs; this just avoids a flaky seek-to-end.)
+  // Helper: deterministically fire the active clip's `ended` event so the
+  // engine chains to the next clip. (Fires on whichever layer is currently active.)
   const advance = async () => {
     await page.evaluate(() => {
-      const v = document.getElementById("stageVideo");
+      const v = document.getElementById("videoStage").querySelector("video.active")
+            || document.getElementById("stageVideo");
       v.dispatchEvent(new Event("ended"));
     });
   };
@@ -72,7 +71,10 @@ try {
   assert(true, "riddle_1 is on screen and playing (THE BUG — was never playing before)");
   await advance();
   await waitClip("wait_1.mp4");
-  const mutedAfterRiddle = await page.evaluate(() => document.getElementById("stageVideo").muted);
+  const mutedAfterRiddle = await page.evaluate(() => {
+    const v = document.querySelector(".video-stage video.active") || document.getElementById("stageVideo");
+    return v.muted;
+  });
   assert(mutedAfterRiddle, "waiting loop is muted after riddle_1 finishes");
 
   console.log("\n── 2. Hint: heres_a_hint → hint_1 ──");

@@ -5,7 +5,8 @@
   "description": "Single-page riddle game with character video streams",
   "scripts": {
     "verify:video": "node scripts/verify_video.mjs",
-    "verify:full": "node scripts/verify_full_chain.mjs"
+    "verify:full": "node scripts/verify_full_chain.mjs",
+    "verify:black": "node scripts/verify_no_black_frames.mjs"
   },
   "devDependencies": {
     "playwright": "^1.50.0"

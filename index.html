@@ -65,11 +65,17 @@
     }
     .video-stage.hidden { display: none; }
     .video-stage video {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: contain;
       display: block;
+      opacity: 0;
+      transition: opacity 120ms ease-in;
+      background: #000;
     }
+    .video-stage video.active { opacity: 1; }
     .start-overlay {
       position: absolute;
       inset: 0;
@@ -257,7 +263,8 @@
     </div>
 
     <div class="video-stage hidden" id="videoStage">
-      <video id="stageVideo" playsinline preload="none"></video>
+      <video id="backVideo" playsinline preload="none" class="back-layer"></video>
+      <video id="stageVideo" playsinline preload="none" class="video-layer"></video>
       <button class="start-overlay hidden" id="startOverlay" aria-label="Play with sound">
         <span class="play-btn">▶</span>
       </button>
@@ -295,7 +302,8 @@
     const videoStage = document.getElementById("videoStage");
     const stageVideo = document.getElementById("stageVideo");
     const startOverlay = document.getElementById("startOverlay");
-    VideoEngine.init({ stageEl: stageVideo });
+    const backVideo = document.getElementById("backVideo");
+    VideoEngine.init({ stageEl: stageVideo, backEl: backVideo });
 
     let allRiddles = { under10: [], over10: [] };
     let riddles = [];
@@ -433,18 +441,13 @@
     }
 
     function showStartOverlay() {
-      // park on the first frame of the riddle clip behind a ▶ button.
-      // Use a one-shot listener so a late loadeddata can't re-seek the video
-      // mid-playback and race with playSequence() from the click handler.
+      // Freeze the first frame of the riddle clip behind a ▶ button.
+      // park() is muted + paused (no audio, no autoplay), so nothing plays
+      // until the user clicks.
       const n = riddles[i].videoSet;
       videoStage.classList.remove("hidden");
       startOverlay.classList.remove("hidden");
-      stageVideo.removeAttribute("muted");
-      stageVideo.src = VideoEngine.clips.riddle(n);
-      const onLoaded = () => {
-        try { stageVideo.currentTime = 0.05; } catch (e) {}
-      };
-      stageVideo.addEventListener("loadeddata", onLoaded, { once: true });
+      VideoEngine.park(VideoEngine.clips.riddle(n));
     }
 
     startOverlay.addEventListener("click", () => {
@@ -460,9 +463,9 @@
     // tiny test/debug handle (harmless in the game UI)
     window.__rq = {
       videoStage: () => !videoStage.classList.contains("hidden"),
-      currentSrc: () => stageVideo.dataset.clip || "",
+      currentSrc: () => VideoEngine.activeClip().split("/").pop(),
       muted: () => stageVideo.muted,
-      engineMode: () => VideoEngine.isWaiting() ? "waiting" : (stageVideo.paused ? "idle" : "playing"),
+      engineMode: () => VideoEngine.isWaiting() ? "waiting" : (VideoEngine.activePlaying() ? "playing" : "idle"),
       clickStart: () => startOverlay.click(),
       advance: () => { const c = stageVideo.currentTime || 0; stageVideo.currentTime = Math.max(c, (stageVideo.duration || 1) - 0.01); },
       fireEnded: () => stageVideo.dispatchEvent(new Event("ended"))
