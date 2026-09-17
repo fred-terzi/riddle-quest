@@ -11,8 +11,12 @@
  *
  * Every cut does the same thing:
  *   1. Load the next clip on the STANDBY layer.
- *   2. Wait until that layer is actually displaying a frame (`playing` event,
- *      with a hard timeout fallback).
+ *   2. Wait until that layer has actually PRESENTED a frame to the screen.
+ *      We gate on `requestVideoFrameCallback` (fires after a real frame is
+ *      composited) — the `playing` event alone fires a frame or two early and
+ *      lets a black frame through. A `requestAnimationFrame` fallback covers
+ *      browsers without rVFC (e.g. Safari), and a hard timeout is the last
+ *      resort.
  *   3. Crossfade: make the STANDBY layer active, fade the old one out.
  *   4. Swap: the old active layer becomes the new standby for the next cut.
  *
@@ -123,8 +127,13 @@
     el.dataset.clipUrl = rawUrl;
   }
 
-  // Returns a Promise that resolves when `el` is actually displaying a frame
-  // (the `playing` event), with a timeout.
+  // Returns a Promise that resolves only once `el` has PRESENTED a real frame
+  // to the compositor. We gate on `requestVideoFrameCallback` because the
+  // `playing` event fires before the first frame is actually on screen —
+  // promoting on `playing` is what leaked the last black frame through.
+  //
+  // Fallback for browsers without rVFC (e.g. Safari): `playing` + two nested
+  // requestAnimationFrame ticks, which lets the compositor actually paint.
   //
   // `AbortError` from play() is normal and NOT a failure — it just means a
   // previous play() was superseded. Only a real `error` event or a hard
@@ -137,14 +146,25 @@
         () => settle(() => reject(new Error("showingFrame timeout"))),
         timeoutMs
       );
-      el.addEventListener("playing", () => {
+      const onFrame = () => {
         clearTimeout(timer);
         settle(resolve);
-      }, { once: true });
+      };
       el.addEventListener("error", () => {
         clearTimeout(timer);
         settle(() => reject(new Error("element error")));
       }, { once: true });
+
+      // Register the frame-presented gate BEFORE starting playback so the very
+      // first presented frame is not missed.
+      if (typeof el.requestVideoFrameCallback === "function") {
+        el.requestVideoFrameCallback(onFrame);
+      } else {
+        el.addEventListener("playing", () => {
+          requestAnimationFrame(() => requestAnimationFrame(onFrame));
+        }, { once: true });
+      }
+
       const p = el.play();
       if (p && p.catch) p.catch((err) => {
         if (err && err.name === "AbortError") return;   // superseded — not a fault
