@@ -6,8 +6,7 @@ Thumbs.db
 # Stray note file, not project source
 RIDDLE_QUEST.md
 
-# Generated video clips (large, regenerate-able) — engine.js stays tracked
-assets/videos/**/*.mp4
+# Regenerable tool artifact
 assets/videos/whisper-*.tar.gz
 
 # deps
